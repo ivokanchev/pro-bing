@@ -38,6 +38,7 @@ Examples:
 
 func main() {
 	timeout := flag.Duration("t", time.Second*100000, "")
+	packetTimeout := flag.Duration("p", 0, "")
 	interval := flag.Duration("i", time.Second, "")
 	count := flag.Int("c", -1, "")
 	size := flag.Int("s", 24, "")
@@ -70,8 +71,13 @@ func main() {
 	}()
 
 	pinger.OnRecv = func(pkt *probing.Packet) {
-		fmt.Printf("%d bytes from %s: icmp_seq=%d time=%v ttl=%v\n",
-			pkt.Nbytes, pkt.IPAddr, pkt.Seq, pkt.Rtt, pkt.TTL)
+		if pkt.Rtt > *packetTimeout {
+			fmt.Printf("%d bytes from %s: icmp_seq=%d time=%v ttl=%v <timed out>\n",
+				pkt.Nbytes, pkt.IPAddr, pkt.Seq, pkt.Rtt, pkt.TTL)
+		} else {
+			fmt.Printf("%d bytes from %s: icmp_seq=%d time=%v ttl=%v\n",
+				pkt.Nbytes, pkt.IPAddr, pkt.Seq, pkt.Rtt, pkt.TTL)
+		}
 	}
 	pinger.OnDuplicateRecv = func(pkt *probing.Packet) {
 		fmt.Printf("%d bytes from %s: icmp_seq=%d time=%v ttl=%v (DUP!)\n",
@@ -89,6 +95,7 @@ func main() {
 	pinger.Size = *size
 	pinger.Interval = *interval
 	pinger.Timeout = *timeout
+	pinger.PacketTimeout = *packetTimeout
 	pinger.TTL = *ttl
 	pinger.SetPrivileged(*privileged)
 
